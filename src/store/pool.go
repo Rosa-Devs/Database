@@ -3,8 +3,10 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -45,8 +47,18 @@ func (Pool *Pool) Record(data []byte) error {
 		return err
 	}
 
+	// Check if the folder with the ID exists, if not, create it
+	folderPath := fmt.Sprintf(Pool.Working_path+"/%s", id[:2])
+	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		// Folder doesn't exist, create it
+		err := os.MkdirAll(folderPath, 0755)
+		if err != nil {
+			fmt.Println("Error creating folder:", err)
+		}
+	}
+
 	// Save the JSON data to a file
-	filePath := fmt.Sprintf(Pool.Working_path+"/%s.json", id) // Replace this with the actual path where you want to save the file
+	filePath := fmt.Sprintf(Pool.Working_path+"/"+id[:2]+"/%s.json", id) // Replace this with the actual path where you want to save the file
 	err = os.WriteFile(filePath, updatedData, 0644)
 	if err != nil {
 		return err
@@ -58,7 +70,7 @@ func (Pool *Pool) Record(data []byte) error {
 
 func (p *Pool) GetByID(id string) (map[string]interface{}, error) {
 	// Construct the file path using the ID
-	filePath := fmt.Sprintf(p.Working_path+"/%s.json", id) // Replace this with the actual path where you saved the files
+	filePath := fmt.Sprintf(p.Working_path+"/"+id[:2]+"/%s.json", id) // Replace this with the actual path where you saved the files
 
 	// Read the file content
 	fileContent, err := os.ReadFile(filePath)
@@ -99,24 +111,17 @@ func (p *Pool) Filter(filter map[string]interface{}) ([]map[string]interface{}, 
 	var matchingFiles []string
 
 	// List all files in the directory
-	files, err := os.ReadDir(p.Working_path) // Replace this with the actual path where you saved the files
-	if err != nil {
-		return nil, err
-	}
-
-	// Iterate through files and apply the filter criteria
-	for _, file := range files {
-		filePath := p.Working_path + "/" + file.Name()
+	err := p.walkDir(func(filePath string) error {
 		fileContent, err := os.ReadFile(filePath)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		// Unmarshal the JSON data into a map
 		var jsonData map[string]interface{}
 		err = json.Unmarshal(fileContent, &jsonData)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		// Check if the file data matches the filter criteria
@@ -137,6 +142,12 @@ func (p *Pool) Filter(filter map[string]interface{}) ([]map[string]interface{}, 
 		if matchesFilter {
 			matchingFiles = append(matchingFiles, jsonData["_id"].(string))
 		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	var data []map[string]interface{}
@@ -153,17 +164,21 @@ func (p *Pool) Filter(filter map[string]interface{}) ([]map[string]interface{}, 
 		data = append(data, jsonData)
 	}
 
-	// Convert data to JSON string
-	// jsonString, err := json.Marshal(data)
-	// if err != nil {
-	// 	log.Println("Error converting data to JSON:", err)
-	// }
-
-	// // Print the JSON string
-	// fmt.Println("Matching data as JSON string:")
-	// fmt.Println(string(jsonString))
-
 	return data, nil
+}
+
+func (p *Pool) walkDir(callback func(filePath string) error) error {
+	return filepath.Walk(p.Working_path, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		return callback(path)
+	})
 }
 
 func (p *Pool) Delete(id string) error {
