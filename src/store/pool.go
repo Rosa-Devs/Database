@@ -227,3 +227,90 @@ func (p *Pool) Update(id string, newData map[string]interface{}) error {
 	//fmt.Println("Record with ID", id, "updated successfully.")
 	return nil
 }
+
+type LinkS struct {
+	Links []Link `json:"links"`
+}
+
+// Link struct representing a link
+type Link struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+// LinkTree function to generate links
+func (p *Pool) LinkTree() (LinkS, error) {
+	var links []Link
+
+	rootName := "CustomRootName" // Set your custom name here
+
+	err := filepath.Walk(p.Working_path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relativePath, _ := filepath.Rel(p.Working_path, path)
+
+		// Skip the root directory itself
+
+		fileName := filepath.Base(relativePath)
+		dirName := filepath.Base(filepath.Dir(relativePath))
+
+		if dirName == "." {
+			return nil
+		}
+		// Add a link from 2-character folders to the custom root name
+		if len(dirName) == 2 {
+			links = append(links, Link{Source: dirName, Target: rootName})
+		}
+
+		links = append(links, Link{Source: fileName, Target: dirName})
+
+		// Add a link to the folder itself
+		if info.IsDir() {
+			links = append(links, Link{Source: dirName, Target: filepath.Base(filepath.Dir(relativePath))})
+		}
+
+		return nil
+	})
+
+	return LinkS{Links: links}, err
+}
+
+// func (p *Pool) LinkTree() (LinkS, error) {
+// 	var links []Link
+
+// 	rootName := "CustomRootName" // Set your custom name here
+
+// 	err := filepath.Walk(p.Working_path, func(path string, info os.FileInfo, err error) error {
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		relativePath, _ := filepath.Rel(p.Working_path, path)
+
+// 		// Skip the root directory itself
+
+// 		fileName := filepath.Base(relativePath)
+// 		dirName := filepath.Base(filepath.Dir(relativePath))
+
+// 		if dirName == "." {
+// 			return nil
+// 		}
+// 		// Add a link from 2-character folders to the custom root name
+// 		if len(dirName) == 2 {
+// 			links = append(links, Link{Source: dirName, Target: rootName})
+// 		}
+
+// 		links = append(links, Link{Source: fileName, Target: dirName})
+
+// 		// Add a link to the folder itself
+// 		if info.IsDir() {
+// 			links = append(links, Link{Source: dirName, Target: filepath.Base(filepath.Dir(relativePath))})
+// 		}
+
+// 		return nil
+// 	})
+
+// 	return LinkS{Links: links}, err
+// }

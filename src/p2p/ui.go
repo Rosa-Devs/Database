@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/google/uuid"
 	"github.com/rivo/tview"
 )
 
@@ -134,9 +135,9 @@ func (ui *ChatUI) refreshPeers() {
 
 // displayChatMessage writes a ChatMessage from the room to the message window,
 // with the sender's nick highlighted in green.
-func (ui *ChatUI) displayChatMessage(cm *ChatMessage) {
-	prompt := withColor("green", fmt.Sprintf("<%s>:", cm.SenderNick))
-	fmt.Fprintf(ui.msgW, "%s %s\n", prompt, cm.Message)
+func (ui *ChatUI) displayChatMessage(cm *Action) {
+	prompt := withColor("green", fmt.Sprintf("<%s>:", cm.SenderID))
+	fmt.Fprintf(ui.msgW, "%s %s\n", prompt, cm.Data.FileID)
 }
 
 // displaySelfMessage writes a message from ourselves to the message window,
@@ -157,7 +158,7 @@ func (ui *ChatUI) handleEvents() {
 		select {
 		case input := <-ui.inputCh:
 			// when the user types in a line, publish it to the chat room and print to the message window
-			err := ui.cr.Publish(input)
+			err := ui.cr.Publish(Data{FileID: string(uuid.New().String())}, Create)
 			if err != nil {
 				log.Println(err)
 			}

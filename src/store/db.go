@@ -2,13 +2,17 @@ package db
 
 import (
 	"os"
+
+	"github.com/Rosa-Devs/POC/src/p2p"
 )
 
 type DB struct {
 	DatabasePath string
+	ChatRoom     p2p.ChatRoom
 }
 
 func (db *DB) Start(path string) {
+
 	db.DatabasePath = path
 	spawnWorkers()
 }

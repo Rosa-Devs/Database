@@ -10,7 +10,7 @@ import (
 )
 
 // ChatRoomBufSize is the number of incoming messages to buffer for each topic.
-const ChatRoomBufSize = 128
+const ChatRoomBufSize = 1024
 
 // shortID returns the last 8 chars of a base58-encoded peer id.
 func ShortID(p peer.ID) string {
@@ -23,7 +23,7 @@ func ShortID(p peer.ID) string {
 // messages are pushed to the Messages channel.
 type ChatRoom struct {
 	// Messages is a channel of messages received from other peers in the chat room
-	Messages chan *ChatMessage
+	Messages chan *Action
 
 	ctx   context.Context
 	ps    *pubsub.PubSub
@@ -36,11 +36,6 @@ type ChatRoom struct {
 }
 
 // ChatMessage gets converted to/from JSON and sent in the body of pubsub messages.
-type ChatMessage struct {
-	Message    string
-	SenderID   string
-	SenderNick string
-}
 
 // JoinChatRoom tries to subscribe to the PubSub topic for the room name, returning
 // a ChatRoom on success.
@@ -65,7 +60,7 @@ func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickna
 		self:     selfID,
 		nick:     nickname,
 		roomName: roomName,
-		Messages: make(chan *ChatMessage, ChatRoomBufSize),
+		Messages: make(chan *Action, ChatRoomBufSize),
 	}
 
 	// start reading messages from the subscription in a loop
@@ -74,11 +69,11 @@ func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickna
 }
 
 // Publish sends a message to the pubsub topic.
-func (cr *ChatRoom) Publish(message string) error {
-	m := ChatMessage{
-		Message:    message,
-		SenderID:   cr.self.String(),
-		SenderNick: cr.nick,
+func (cr *ChatRoom) Publish(data Data, action int) error {
+	m := Action{
+		Type:     action,
+		Data:     data,
+		SenderID: cr.self.String(),
 	}
 	msgBytes, err := json.Marshal(m)
 	if err != nil {
@@ -103,13 +98,12 @@ func (cr *ChatRoom) readLoop() {
 		if msg.ReceivedFrom == cr.self {
 			continue
 		}
-		cm := new(ChatMessage)
+		cm := new(Action)
 		err = json.Unmarshal(msg.Data, cm)
 		if err != nil {
 			continue
 		}
 		// send valid messages onto the Messages channel
-		cr.Messages <- cm
 	}
 }
 
