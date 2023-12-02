@@ -64,6 +64,7 @@ func StartWorker(db *Database) (*WorkerRoom, error) {
 	}
 
 	// start reading messages from the subscription in a loop
+	log.Println("Starting workers")
 	go cr.TaskPublisher()
 	go cr.readLoop()
 	return cr, nil
@@ -110,5 +111,6 @@ func (cr *WorkerRoom) readLoop() {
 			continue
 		}
 		// send valid messages onto the Messages channel
+		cr.handeler(*cm)
 	}
 }

@@ -1,6 +1,9 @@
 package db
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"log"
+)
 
 var (
 	Update int = 1
@@ -11,6 +14,7 @@ var (
 type Data struct {
 	FileID  string
 	Content []byte
+	Pool    string
 }
 
 type Action struct {
@@ -38,24 +42,57 @@ func (a *Action) Deserialize(jsonStr string) error {
 	return nil
 }
 
-func handeler(msg Action) {
+func (ps *WorkerRoom) handeler(msg Action) {
 	if msg.Type == Update {
-		update(msg.Data)
+		ps.update(msg.Data)
 	} else if msg.Type == Delete {
-		delete(msg.Data)
+		ps.delete(msg.Data)
 	} else if msg.Type == Create {
-		create(msg.Data)
+		ps.create(msg.Data)
+	}
+
+	//DEBUG
+	log.Println("NEW UPDATE ID:", msg.SenderID[:8], "TYPE:", msg.Type, "ID:", msg.Data.FileID)
+}
+
+func (ps *WorkerRoom) update(msg Data) {
+	pool, err := ps.db.GetPool(msg.Pool, true)
+	if err != nil {
+		log.Println("Fail to get pool", err)
+		return
+	}
+
+	err = pool.Update(msg.FileID, msg.Content)
+	if err != nil {
+		log.Println("Fail to update record, error:", err)
 	}
 }
 
-func update(msg Data) {
+func (ps *WorkerRoom) delete(msg Data) {
+	pool, err := ps.db.GetPool(msg.Pool, true)
+	if err != nil {
+		log.Println("Fail to get pool", err)
+		return
+	}
 
+	err = pool.Delete(msg.FileID)
+	if err != nil {
+		log.Println("Fail to delete record, error:", err)
+	}
 }
 
-func delete(msg Data) {
+func (ps *WorkerRoom) create(msg Data) {
+	//get pool
+	pool, err := ps.db.GetPool(msg.Pool, true)
+	if err != nil {
+		log.Println("Fail to get pool", err)
+		return
+	}
 
-}
-
-func create(msg Data) {
+	err = pool.RecordWithID(msg.Content, msg.FileID)
+	if err != nil {
+		log.Println("Fail to create file, error:", err)
+		return
+	}
 
 }

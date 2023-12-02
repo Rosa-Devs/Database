@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log"
 	"os"
 
 	"github.com/Rosa-Devs/POC/src/manifest"
@@ -58,6 +59,18 @@ func (db *DB) GetDb(id string, pb *pubsub.PubSub, m manifest.Manifest, peer peer
 
 func (db *Database) StartWorker() {
 	StartWorker(db)
+}
+
+func (db *Database) PublishUpdate(a Action) error {
+	data := a
+
+	data.SenderID = db.peerId.String()
+
+	db.TaskPool <- data
+
+	log.Println(data.SenderID)
+	return nil
+
 }
 
 func (db *Database) CreatePool(pool_id string) error {

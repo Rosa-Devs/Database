@@ -16,9 +16,10 @@ type Pool struct {
 	Database     *Database
 	PoolName     string
 	Working_path string
+	Worker       bool
 }
 
-func (db *Database) GetPool(poolName string) (*Pool, error) {
+func (db *Database) GetPool(poolName string, w ...bool) (*Pool, error) {
 
 	folderPath := db.db.DatabasePath + "/" + db.db_name + "/" + poolName // Replace this with the actual path to your folder
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
@@ -26,7 +27,16 @@ func (db *Database) GetPool(poolName string) (*Pool, error) {
 		return nil, err
 	}
 
-	return &Pool{Database: db, PoolName: poolName, Working_path: db.db.DatabasePath + "/" + db.db_name + "/" + poolName}, nil
+	var worker bool
+	if len(w) > 0 {
+		if w[0] == true {
+			worker = true
+		} else {
+			worker = false
+		}
+	}
+
+	return &Pool{Database: db, PoolName: poolName, Working_path: db.db.DatabasePath + "/" + db.db_name + "/" + poolName, Worker: worker}, nil
 }
 
 func (Pool *Pool) Record(data []byte) error {
@@ -62,6 +72,68 @@ func (Pool *Pool) Record(data []byte) error {
 	err = os.WriteFile(filePath, updatedData, 0644)
 	if err != nil {
 		return err
+	}
+
+	//If not worker publish update to db
+	if Pool.Worker == false {
+		Pool.Database.PublishUpdate(Action{
+			Type:    Create,
+			Channel: Pool.Database.manifest.PubSub,
+			Data: Data{
+				FileID:  id,
+				Content: data,
+				Pool:    Pool.PoolName,
+			},
+		})
+	}
+
+	//fmt.Println("New db record!")
+	return nil
+}
+
+func (Pool *Pool) RecordWithID(data []byte, id string) error {
+	var jsonData map[string]interface{}
+
+	// Unmarshal the JSON data into a map
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return err
+	}
+
+	jsonData["_id"] = id
+
+	// Convert the updated data back to JSON
+	updatedData, err := json.Marshal(jsonData)
+	if err != nil {
+		return err
+	}
+
+	// Check if the folder with the ID exists, if not, create it
+	folderPath := fmt.Sprintf(Pool.Working_path+"/%s", id[:2])
+	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		// Folder doesn't exist, create it
+		err := os.MkdirAll(folderPath, 0755)
+		if err != nil {
+			fmt.Println("Error creating folder:", err)
+		}
+	}
+
+	// Save the JSON data to a file
+	filePath := fmt.Sprintf(Pool.Working_path+"/"+id[:2]+"/%s.json", id) // Replace this with the actual path where you want to save the file
+	err = os.WriteFile(filePath, updatedData, 0644)
+	if err != nil {
+		return err
+	}
+
+	//If not worker publish update to db
+	if Pool.Worker == false {
+		Pool.Database.PublishUpdate(Action{
+			Type:    Create,
+			Channel: Pool.Database.manifest.PubSub,
+			Data: Data{
+				FileID:  id,
+				Content: data,
+			},
+		})
 	}
 
 	//fmt.Println("New db record!")
@@ -195,19 +267,38 @@ func (p *Pool) Delete(id string) error {
 		return err
 	}
 
+	if p.Worker == false {
+		p.Database.PublishUpdate(Action{
+			Type:    Delete,
+			Channel: p.Database.manifest.PubSub,
+			Data: Data{
+				FileID:  id,
+				Content: []byte(""),
+				Pool:    p.PoolName,
+			},
+		})
+	}
+
 	// fmt.Println("Record with ID", id, "deleted successfully.")
 	return nil
 }
 
-func (p *Pool) Update(id string, newData map[string]interface{}) error {
+func (p *Pool) Update(id string, newData []byte) error {
 	// Get the existing record by ID
 	existingData, err := p.GetByID(id)
 	if err != nil {
 		return err
 	}
 
+	// Unmarshal the new data into a map
+	var newDataMap map[string]interface{}
+	err = json.Unmarshal(newData, &newDataMap)
+	if err != nil {
+		return err
+	}
+
 	// Update the existing record with new data
-	for key, value := range newData {
+	for key, value := range newDataMap {
 		existingData[key] = value
 	}
 
@@ -222,6 +313,18 @@ func (p *Pool) Update(id string, newData map[string]interface{}) error {
 	err = os.WriteFile(filePath, updatedData, 0644)
 	if err != nil {
 		return err
+	}
+
+	if p.Worker == false {
+		p.Database.PublishUpdate(Action{
+			Type:    Update,
+			Channel: p.Database.manifest.PubSub,
+			Data: Data{
+				FileID:  id,
+				Content: updatedData,
+				Pool:    p.PoolName,
+			},
+		})
 	}
 
 	//fmt.Println("Record with ID", id, "updated successfully.")
