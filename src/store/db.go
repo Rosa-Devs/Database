@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Rosa-Devs/POC/src/manifest"
+	"github.com/Rosa-Devs/Database/src/manifest"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"

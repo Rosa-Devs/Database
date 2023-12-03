@@ -1,4 +1,4 @@
-module github.com/Rosa-Devs/POC
+module github.com/Rosa-Devs/Database
 
 go 1.21.3
 

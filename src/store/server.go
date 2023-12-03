@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Rosa-Devs/POC/src/manifest"
+	"github.com/Rosa-Devs/Database/src/manifest"
 	gostream "github.com/libp2p/go-libp2p-gostream"
 	p2phttp "github.com/libp2p/go-libp2p-http"
 )

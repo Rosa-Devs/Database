@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Rosa-Devs/POC/src/manifest"
+	"github.com/Rosa-Devs/Database/src/manifest"
 
-	db "github.com/Rosa-Devs/POC/src/store"
+	db "github.com/Rosa-Devs/Database/src/store"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"

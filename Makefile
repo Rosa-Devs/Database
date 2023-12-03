@@ -9,7 +9,6 @@ db:
 	go build -o ./build/db cmd/db/db.go
 	chmod +x ./build/db
 
-explorer:
-	go build -o ./build/explorer cmd/explorer/main.go
-	chmod +x ./build/explorer
-	cd ./build && ./explorer
+manager:
+	go build -o ./build/manager cmd/manager/main.go
+	chmod +x ./build/manager
