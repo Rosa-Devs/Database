@@ -18,106 +18,108 @@ const maxRetries = 3
 const retryDelay = time.Second * 5
 
 func (wr *WorkerRoom) Sync() {
-	time.Sleep(time.Second * 2)
+	for {
+		time.Sleep(time.Second * time.Duration(wr.timeout))
+		//GET LIST OF NODES IN SUBSCRIPTION
 
-	//GET LIST OF NODES IN SUBSCRIPTION
+		nodes := wr.topic.ListPeers()
 
-	nodes := wr.topic.ListPeers()
+		//log.Println("ALL NODES:", nodes)
 
-	//log.Println("ALL NODES:", nodes)
-
-	if len(nodes) == 0 {
-		log.Println("No peers available NOT SYNCING")
-		return
-	}
-
-	if len(nodes) > 15 {
-		nodes = getRandomNodes(nodes, 15)
-	}
-
-	m, err := wr.db.manifest.Serialize()
-	// Send a POST request to each node
-	if err != nil {
-		log.Println("Err:", err)
-	}
-	var roots []string
-	for _, id := range nodes {
-
-		resp, err := wr.db.db.client.Post("libp2p://"+id.String()+"/merkle", "application/json", bytes.NewBuffer(m))
-		if err != nil {
-			log.Println("Failed to post manifest data to node:", id.String(), "Err:", err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		// Read the response body
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println("Error reading response body:", err)
-		} else {
-
-			var merkelResponse MerkelRoot
-			err = json.Unmarshal(body, &merkelResponse)
-			if err != nil {
-				log.Println("Error decoding JSON response:", err)
-				continue
-			}
-			//log.Printf("Response from node %s: %s\n", id.String(), body)
-			roots = append(roots, merkelResponse.Root)
-		}
-	}
-
-	root_hash := findMostRepeatedString(roots)
-	if root_hash == "" {
-		log.Println("DataBase is empty NOT SYNCING")
-		return
-	}
-	//log.Println("TRUE_HASH:", root_hash)
-
-	my_root, err := wr.db.GenereateMerkleTree()
-	if err != nil {
-		log.Println("Error generating merkle tree:", err)
-	}
-
-	if my_root == root_hash {
-		log.Println("DB sync complete")
-		return
-	}
-
-	var DBIndexs []map[string]string
-
-	for _, id := range nodes {
-		resp, err := wr.db.db.client.Post("libp2p://"+id.String()+"/indexs", "application/json", bytes.NewBuffer(m))
-		if err != nil {
-			log.Println("Failed to post manifest data to node:", id.String(), "Err:", err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		var Index map[string]string
-		err = json.NewDecoder(resp.Body).Decode(&Index)
-		if err != nil {
-			log.Println("Failed to decode indexs, ERR:", err)
+		if len(nodes) == 0 {
+			log.Println("No peers available NOT SYNCING")
 			return
 		}
-		//log.Printf("Response from node %s: %s\n", id.String(), body)
-		DBIndexs = append(DBIndexs, Index)
 
+		if len(nodes) > 15 {
+			nodes = getRandomNodes(nodes, 15)
+		}
+
+		m, err := wr.db.manifest.Serialize()
+		// Send a POST request to each node
+		if err != nil {
+			log.Println("Err:", err)
+		}
+		var roots []string
+		for _, id := range nodes {
+
+			resp, err := wr.db.db.client.Post("libp2p://"+id.String()+"/merkle", "application/json", bytes.NewBuffer(m))
+			if err != nil {
+				log.Println("Failed to post manifest data to node:", id.String(), "Err:", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			// Read the response body
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Println("Error reading response body:", err)
+			} else {
+
+				var merkelResponse MerkelRoot
+				err = json.Unmarshal(body, &merkelResponse)
+				if err != nil {
+					log.Println("Error decoding JSON response:", err)
+					continue
+				}
+				//log.Printf("Response from node %s: %s\n", id.String(), body)
+				roots = append(roots, merkelResponse.Root)
+			}
+		}
+
+		root_hash := findMostRepeatedString(roots)
+		if root_hash == "" {
+			log.Println("DataBase is empty NOT SYNCING")
+			return
+		}
+		//log.Println("TRUE_HASH:", root_hash)
+
+		my_root, err := wr.db.GenereateMerkleTree()
+		if err != nil {
+			log.Println("Error generating merkle tree:", err)
+		}
+
+		if my_root == root_hash {
+			log.Println("DB sync complete")
+			return
+		}
+
+		var DBIndexs []map[string]string
+
+		for _, id := range nodes {
+			resp, err := wr.db.db.client.Post("libp2p://"+id.String()+"/indexs", "application/json", bytes.NewBuffer(m))
+			if err != nil {
+				log.Println("Failed to post manifest data to node:", id.String(), "Err:", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			var Index map[string]string
+			err = json.NewDecoder(resp.Body).Decode(&Index)
+			if err != nil {
+				log.Println("Failed to decode indexs, ERR:", err)
+				return
+			}
+			//log.Printf("Response from node %s: %s\n", id.String(), body)
+			DBIndexs = append(DBIndexs, Index)
+
+		}
+		index := mostRepeatedMap(DBIndexs)
+
+		my_index, err := wr.db.Index()
+		if err != nil {
+			log.Println("Failt to index database:", err)
+		}
+
+		changed_file := wr.db.CalculateChangedFiles(index, my_index)
+
+		for _, file := range changed_file {
+			wr.GetRecordUpdate(file, nodes)
+		}
+
+		log.Println("DB sync complete")
+		time.Sleep(time.Second * 60)
 	}
-	index := mostRepeatedMap(DBIndexs)
-
-	my_index, err := wr.db.Index()
-	if err != nil {
-		log.Println("Failt to index database:", err)
-	}
-
-	changed_file := wr.db.CalculateChangedFiles(index, my_index)
-
-	for _, file := range changed_file {
-		wr.GetRecordUpdate(file, nodes)
-	}
-
-	log.Println("DB sync complete")
 }
 
 func (wr *WorkerRoom) GetRecordUpdate(file string, nodes []peer.ID) {

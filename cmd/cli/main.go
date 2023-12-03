@@ -90,7 +90,7 @@ func main() {
 
 	// !! WORKING WITH SPECIFIED BATABASE !!
 	db1 := Drvier.GetDb(manifetstData)
-	db1.StartWorker()
+	db1.StartWorker(15)
 
 	err = db1.CreatePool("chat")
 	if err != nil {

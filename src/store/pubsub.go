@@ -37,9 +37,11 @@ type WorkerRoom struct {
 
 	roomName string
 	self     peer.ID
+
+	timeout int
 }
 
-func StartWorker(db *Database) (*WorkerRoom, error) {
+func StartWorker(db *Database, timeout int) (*WorkerRoom, error) {
 	// join the pubsub topic
 	topic, err := db.pb.Join(db.manifest.PubSub)
 	if err != nil {
@@ -61,6 +63,7 @@ func StartWorker(db *Database) (*WorkerRoom, error) {
 		roomName: db.manifest.PubSub,
 		Messages: make(chan *Action, ChatRoomBufSize),
 		db:       db,
+		timeout:  timeout,
 	}
 
 	// start reading messages from the subscription in a loop

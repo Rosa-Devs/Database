@@ -66,8 +66,8 @@ func (db *DB) GetDb(m manifest.Manifest) Database {
 	}
 }
 
-func (db *Database) StartWorker() {
-	StartWorker(db)
+func (db *Database) StartWorker(timeout int) {
+	StartWorker(db, timeout)
 }
 
 func (db *Database) PublishUpdate(a Action) error {
