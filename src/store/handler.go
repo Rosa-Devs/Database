@@ -34,8 +34,8 @@ func (a *Action) Serialize() ([]byte, error) {
 }
 
 // Deserialize deserializes a JSON string to an Action struct.
-func (a *Action) Deserialize(jsonStr string) error {
-	err := json.Unmarshal([]byte(jsonStr), a)
+func (a *Action) Deserialize(jsonDaat []byte) error {
+	err := json.Unmarshal(jsonDaat, a)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (ps *WorkerRoom) handeler(msg Action) {
 	}
 
 	//DEBUG
-	log.Println("NEW UPDATE ID:", msg.SenderID[:8], "TYPE:", msg.Type, "ID:", msg.Data.FileID)
+	//log.Println("NEW UPDATE ID:", msg.SenderID[:8], "TYPE:", msg.Type, "ID:", msg.Data.FileID)
 }
 
 func (ps *WorkerRoom) update(msg Data) {

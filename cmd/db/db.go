@@ -2,18 +2,14 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
-	"os"
 	"time"
 
 	"github.com/Rosa-Devs/POC/src/manifest"
-	"github.com/Rosa-Devs/POC/src/p2p"
+
 	db "github.com/Rosa-Devs/POC/src/store"
-	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -68,7 +64,10 @@ func main() {
 
 	// !! GLOBAl DB MANAGER !!
 	//CREATE DATABSE INSTANCE
-	Drvier := db.DB{}
+	Drvier := db.DB{
+		H:  h,
+		Pb: ps,
+	}
 	//START DATABSE INSTANCE
 	if *FolderName != "" {
 		Drvier.Start(*FolderName)
@@ -76,10 +75,10 @@ func main() {
 		Drvier.Start("test_db_1")
 	}
 	//CREATE TEST DB
-	Drvier.CreateDb(manifetstData.Name)
+	Drvier.CreateDb(manifetstData)
 
 	// !! WORKING WITH SPECIFIED BATABASE !!
-	db1 := Drvier.GetDb(manifetstData.Name, ps, manifetstData, h.ID())
+	db1 := Drvier.GetDb(manifetstData)
 	db1.StartWorker()
 
 	err = db1.CreatePool("test_pool")
@@ -88,85 +87,46 @@ func main() {
 		//return
 	}
 
-	pool, err := db1.GetPool("test_pool")
+	_, err = db1.GetPool("test_pool")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	go func() {
-		//SIMULATE ADDING DATA
-		time.Sleep(time.Second)
-		rand.Seed(time.Now().UnixNano())
-		for {
-			startTime := time.Now()
-			// Generate random data
-			randomData := map[string]interface{}{
-				"field1": rand.Intn(100),             // Random integer between 0 and 100
-				"field2": rand.Float64() * 100,       // Random float between 0 and 100
-				"field3": uuid.New().String(),        // Random UUID as a string
-				"field4": time.Now().UnixNano(),      // Current timestamp in nanoseconds
-				"field5": fmt.Sprintf("Record%d", 1), // Custom string with record number
-			}
+	// go func() {
+	// 	//SIMULATE ADDING DATA
+	// 	time.Sleep(time.Second)
+	// 	rand.Seed(time.Now().UnixNano())
+	// 	for {
+	// 		startTime := time.Now()
+	// 		// Generate random data
+	// 		randomData := map[string]interface{}{
+	// 			"field1": rand.Intn(100),             // Random integer between 0 and 100
+	// 			"field2": rand.Float64() * 100,       // Random float between 0 and 100
+	// 			"field3": uuid.New().String(),        // Random UUID as a string
+	// 			"field4": time.Now().UnixNano(),      // Current timestamp in nanoseconds
+	// 			"field5": fmt.Sprintf("Record%d", 1), // Custom string with record number
+	// 		}
 
-			// Convert data to JSON
-			jsonData, err := json.Marshal(randomData)
-			if err != nil {
-				fmt.Println("Error marshaling JSON:", err)
-				return
-			}
+	// 		// Convert data to JSON
+	// 		jsonData, err := json.Marshal(randomData)
+	// 		if err != nil {
+	// 			fmt.Println("Error marshaling JSON:", err)
+	// 			return
+	// 		}
 
-			// Call Record function to save the record
-			err = pool.Record(jsonData)
-			if err != nil {
-				fmt.Println("Error recording data:", err)
-				return
-			}
-			time.Sleep(time.Millisecond * 1)
-			endTime := time.Now()
-			duration := endTime.Sub(startTime)
-			log.Printf("Time: %s", duration)
-		}
-	}()
-
-	go func() {
-		for {
-			filter := map[string]interface{}{
-				"field1": 96, // Random integer between 0 and 100
-			}
-
-			data, err := pool.Filter(filter)
-			if err != nil {
-				fmt.Println("Data:", data)
-				fmt.Println("Error filtering data:", err)
-			}
-
-			for _, record := range data {
-
-				// Update the record to set field1 to 0
-				record["field1"] = 0
-
-				// Convert the updated data to JSON
-				updatedData, err := json.Marshal(record)
-				if err != nil {
-					fmt.Println("Error converting data:", err)
-				}
-
-				// Extract the ID from the record
-				id, ok := record["_id"].(string)
-				if !ok {
-					fmt.Println("ID not found in record")
-				}
-
-				// Use the Update method to update the record in the pool
-				err = pool.Update(id, updatedData)
-				if err != nil {
-					log.Println("Faild to update record:", err)
-				}
-			}
-			time.Sleep(time.Millisecond * 70)
-		}
-	}()
+	// 		// Call Record function to save the record
+	// 		err = pool.Record(jsonData)
+	// 		if err != nil {
+	// 			fmt.Println("Error recording data:", err)
+	// 			return
+	// 		}
+	// 		time.Sleep(time.Millisecond * 100)
+	// 		endTime := time.Now()
+	// 		duration := endTime.Sub(startTime)
+	// 		log.Printf("Time: %s", duration)
+	// 	}
+	// }()
 
 	// go func() {
 	// 	for {
@@ -179,7 +139,30 @@ func main() {
 	// 			fmt.Println("Data:", data)
 	// 			fmt.Println("Error filtering data:", err)
 	// 		}
-	// 		log.Println(data)
+
+	// 		for _, record := range data {
+
+	// 			// Update the record to set field1 to 0
+	// 			record["field1"] = 0
+
+	// 			// Convert the updated data to JSON
+	// 			updatedData, err := json.Marshal(record)
+	// 			if err != nil {
+	// 				fmt.Println("Error converting data:", err)
+	// 			}
+
+	// 			// Extract the ID from the record
+	// 			id, ok := record["_id"].(string)
+	// 			if !ok {
+	// 				fmt.Println("ID not found in record")
+	// 			}
+
+	// 			// Use the Update method to update the record in the pool
+	// 			err = pool.Update(id, updatedData)
+	// 			if err != nil {
+	// 				log.Println("Faild to update record:", err)
+	// 			}
+	// 		}
 	// 		time.Sleep(time.Millisecond * 70)
 	// 	}
 	// }()
@@ -191,24 +174,28 @@ func main() {
 	// 		startTime := time.Now()
 
 	// 		// Calculate the current hash tree
-	// 		currentRoot, currentHashTree, err := pool.GenereateMerkleTree()
+	// 		root, err := db1.GenereateMerkleTree()
+	// 		currentHashTree, err := db1.Index()
 	// 		if err != nil {
 	// 			println("Error calculating current hash tree:", err)
 	// 			continue
 	// 		}
 
-	// 		changedFiles := pool.CalculateChangedFiles(prevHashTree, currentHashTree)
+	// 		changed := db1.CalculateChangedFiles(prevHashTree, currentHashTree)
 
-	// 		// Show or log the changed files
-	// 		showChangedFiles(changedFiles)
+	// 		//Show or log the changed files
+	// 		showChangedFiles(changed)
+	// 		//log.Println("CURR", currentHashTree)
+	// 		//log.Println("PVER:", prevHashTree)
+	// 		//log.Println("CHANGED", changed)
 
 	// 		// Update the previous hash tree for the next iteration
 	// 		prevHashTree = currentHashTree
 
 	// 		endTime := time.Now()
 	// 		duration := endTime.Sub(startTime)
-	// 		log.Printf("Root: %s, Time: %s", currentRoot, duration)
-
+	// 		log.Printf("Time: %s", duration)
+	// 		log.Println("Root:", root)
 	// 		time.Sleep(time.Second) // Adjust the sleep duration as needed
 	// 	}
 	// }()
@@ -232,26 +219,15 @@ func main() {
 
 }
 
-// func showChangedFiles(changedFiles []string) {
-// 	if len(changedFiles) > 0 {
-// 		// Print or log the changed files
-// 		for _, filePath := range changedFiles {
-// 			println("Changed file:", filePath)
-// 		}
-// 	} else {
-// 		///println("No files have changed.")
-// 	}
-// }
-
-// printErr is like fmt.Printf, but writes to stderr.
-func printErr(m string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, m, args...)
-}
-
-// defaultNick generates a nickname based on the $USER environment variable and
-// the last 8 chars of a peer ID.
-func defaultNick(p peer.ID) string {
-	return fmt.Sprintf("%s-%s", os.Getenv("USER"), p2p.ShortID(p))
+func showChangedFiles(changedFiles []string) {
+	if len(changedFiles) > 0 {
+		// Print or log the changed files
+		for _, filePath := range changedFiles {
+			println("Changed file:", filePath)
+		}
+	} else {
+		///println("No files have changed.")
+	}
 }
 
 // discoveryNotifee gets notified when we find a new peer via mDNS discovery

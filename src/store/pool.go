@@ -254,7 +254,11 @@ func (p *Pool) walkDir(callback func(filePath string) error) error {
 }
 
 func (p *Pool) Delete(id string) error {
-	filePath := fmt.Sprintf(p.Working_path+"/%s.json", id) // Replace this with the actual path where you saved the files
+	if len(id) < 0 {
+		return fmt.Errorf("No id provided")
+	}
+
+	filePath := fmt.Sprintf(p.Working_path+"/"+id[:2]+"/%s.json", id) // Replace this with the actual path where you saved the files
 
 	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -309,7 +313,7 @@ func (p *Pool) Update(id string, newData []byte) error {
 	}
 
 	// Write the updated data back to the file
-	filePath := fmt.Sprintf(p.Working_path+"/%s.json", id) // Replace this with the actual path where you saved the files
+	filePath := fmt.Sprintf(p.Working_path+"/"+id[:2]+"/%s.json", id) // Replace this with the actual path where you saved the files
 	err = os.WriteFile(filePath, updatedData, 0644)
 	if err != nil {
 		return err

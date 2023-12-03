@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/Rosa-Devs/POC/src/manifest"
-	"github.com/Rosa-Devs/POC/src/p2p"
+
 	db "github.com/Rosa-Devs/POC/src/store"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -28,6 +32,7 @@ func main() {
 	database := flag.String("d", "", "use it to create databse manifest file")
 	ManifestFile := flag.String("m", "", "set Manifets file")
 	FolderName := flag.String("f", "", "set db folder name")
+	NickName := flag.String("n", "", "Set nickname")
 	flag.Parse()
 
 	if *database != "" {
@@ -37,6 +42,11 @@ func main() {
 
 	if *ManifestFile == "" {
 		log.Println("Specifi a manifest file... -m")
+		return
+	}
+
+	if *NickName == "" {
+		log.Println("Specifi a nickname!")
 		return
 	}
 
@@ -65,157 +75,171 @@ func main() {
 
 	// !! GLOBAl DB MANAGER !!
 	//CREATE DATABSE INSTANCE
-	Drvier := db.DB{}
+	Drvier := db.DB{
+		H:  h,
+		Pb: ps,
+	}
 	//START DATABSE INSTANCE
 	if *FolderName != "" {
 		Drvier.Start(*FolderName)
 	} else {
 		Drvier.Start("test_db_1")
 	}
-
 	//CREATE TEST DB
-	Drvier.CreateDb(manifetstData.Name)
+	Drvier.CreateDb(manifetstData)
 
 	// !! WORKING WITH SPECIFIED BATABASE !!
-	db1 := Drvier.GetDb(manifetstData.Name, ps, manifetstData, h.ID())
+	db1 := Drvier.GetDb(manifetstData)
 	db1.StartWorker()
 
-	err = db1.CreatePool("test_pool")
+	err = db1.CreatePool("chat")
 	if err != nil {
 		log.Println("Mayby this pool alredy exist:", err)
 		//return
 	}
 
-	_, err = db1.GetPool("test_pool", true)
+	pool, err := db1.GetPool("chat")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	// go func() {
-	// 	//SIMULATE ADDING DATA
-	// 	rand.Seed(time.Now().UnixNano())
-	// 	for {
-	// 		// Generate random data
-	// 		randomData := map[string]interface{}{
-	// 			"field1": rand.Intn(100),             // Random integer between 0 and 100
-	// 			"field2": rand.Float64() * 100,       // Random float between 0 and 100
-	// 			"field3": uuid.New().String(),        // Random UUID as a string
-	// 			"field4": time.Now().UnixNano(),      // Current timestamp in nanoseconds
-	// 			"field5": fmt.Sprintf("Record%d", 1), // Custom string with record number
-	// 		}
+	go func() {
+		var prevState []map[string]interface{}
+		for {
+			filter := map[string]interface{}{
+				"type": 1,
+			}
 
-	// 		// Convert data to JSON
-	// 		jsonData, err := json.Marshal(randomData)
-	// 		if err != nil {
-	// 			fmt.Println("Error marshaling JSON:", err)
-	// 			return
-	// 		}
+			data, err := pool.Filter(filter)
+			if err != nil {
+				fmt.Println("Data:", data)
+				fmt.Println("Error filtering data:", err)
+			}
 
-	// 		// Call Record function to save the record
-	// 		err = pool.Record(jsonData)
-	// 		if err != nil {
-	// 			fmt.Println("Error recording data:", err)
-	// 			return
-	// 		}
-	// 		time.Sleep(time.Millisecond * 10)
-	// 	}
-	// }()
+			// Sort messages by timestamp in descending order (newest first)
+			sort.Slice(data, func(i, j int) bool {
+				time1, _ := time.Parse(time.RFC3339, data[i]["TimeStamp"].(string))
+				time2, _ := time.Parse(time.RFC3339, data[j]["TimeStamp"].(string))
+				return time1.After(time2)
+			})
 
-	// go func() {
-	// 	for {
-	// 		filter := map[string]interface{}{
-	// 			"field1": 96, // Random integer between 0 and 100
-	// 		}
+			for _, record := range data {
+				if isNewMessage(record, prevState, *NickName) {
+					fmt.Println(record["nick"].(string) + ":" + record["msg"].(string))
+				}
+			}
 
-	// 		data, err := pool.Filter(filter)
-	// 		if err != nil {
-	// 			fmt.Println("Data:", data)
-	// 			fmt.Println("Error filtering data:", err)
-	// 		}
-	// 		log.Println(data)
-	// 		time.Sleep(time.Millisecond * 70)
-	// 	}
-	// }()
+			prevState = data
+			time.Sleep(time.Millisecond * 70)
+		}
+	}()
 
-	// go func() {
-
-	// 	var prevHashTree map[string]string
-	// 	for {
-	// 		startTime := time.Now()
-
-	// 		// Calculate the current hash tree
-	// 		currentRoot, currentHashTree, err := pool.GenereateMerkleTree()
-	// 		if err != nil {
-	// 			println("Error calculating current hash tree:", err)
-	// 			continue
-	// 		}
-
-	// 		changedFiles := pool.CalculateChangedFiles(prevHashTree, currentHashTree)
-
-	// 		// Show or log the changed files
-	// 		showChangedFiles(changedFiles)
-
-	// 		// Update the previous hash tree for the next iteration
-	// 		prevHashTree = currentHashTree
-
-	// 		endTime := time.Now()
-	// 		duration := endTime.Sub(startTime)
-	// 		log.Printf("Root: %s, Time: %s", currentRoot, duration)
-
-	// 		time.Sleep(time.Second) // Adjust the sleep duration as needed
-	// 	}
-	// }()
-
-	// go func() {
-	// 	for {
-	// 		db1.PublishUpdate(db.Action{
-	// 			Channel:  manifetstData.PubSub,
-	// 			SenderID: "root",
-	// 			Data: db.Data{
-	// 				FileID:  "1",
-	// 				Content: []byte("root"),
-	// 			},
-	// 			Type: db.Update,
-	// 		})
-	// 	}
-	// }()
+	reader := bufio.NewReader(os.Stdout)
 
 	for {
+		// Read input from the user
+		fmt.Print(*NickName + ":")
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			break
+		}
+
+		// Trim spaces and newline characters
+		text = text[:len(text)-1]
+
+		if len(text) == 0 {
+			continue
+		}
+		// Print the input
+		msg := new(Message)
+		msg.Nick = *NickName
+		msg.Msg = text
+		msg.Type = TYPE_MSG
+		msg.TimeStamp = time.Now()
+
+		json_data, err := msg.Serialize()
+		if err != nil {
+			log.Println(err)
+		}
+		err = pool.Record(json_data)
+		//fmt.Println("You entered:", text)
 	}
 
 }
 
-// func showChangedFiles(changedFiles []string) {
-// 	if len(changedFiles) > 0 {
-// 		// Print or log the changed files
-// 		for _, filePath := range changedFiles {
-// 			println("Changed file:", filePath)
-// 		}
-// 	} else {
-// 		///println("No files have changed.")
-// 	}
-// }
+func isNewMessage(msg map[string]interface{}, lastState []map[string]interface{}, nick string) bool {
+	for _, lastMsg := range lastState {
+		lastTimeStamp, lastTimeStampOK := lastMsg["TimeStamp"].(string)
+		currentTimeStamp, currentTimeStampOK := msg["TimeStamp"].(string)
 
-// printErr is like fmt.Printf, but writes to stderr.
-func printErr(m string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, m, args...)
+		if !lastTimeStampOK || !currentTimeStampOK {
+			// Handle error case where timestamp is not a valid string
+			continue
+		}
+
+		time1, err1 := time.Parse(time.RFC3339, lastTimeStamp)
+		time2, err2 := time.Parse(time.RFC3339, currentTimeStamp)
+
+		if err1 != nil || err2 != nil {
+			// Handle error case where parsing timestamp fails
+			continue
+		}
+
+		if time1.Equal(time2) && msg["Nick"] == lastMsg["Nick"] && msg["Msg"] == lastMsg["Msg"] {
+			return false
+		}
+
+		if msg["nick"] == nick {
+			return false
+		}
+	}
+
+	return true
 }
 
-// defaultNick generates a nickname based on the $USER environment variable and
-// the last 8 chars of a peer ID.
-func defaultNick(p peer.ID) string {
-	return fmt.Sprintf("%s-%s", os.Getenv("USER"), p2p.ShortID(p))
+const TYPE_MSG = 1
+
+type Message struct {
+	Type      int `json:"type"`
+	TimeStamp time.Time
+	Nick      string `json:"nick"`
+	Msg       string `json:"msg"`
 }
 
-// discoveryNotifee gets notified when we find a new peer via mDNS discovery
+func (a *Message) Serialize() ([]byte, error) {
+	jsonBytes, err := json.Marshal(a)
+	if err != nil {
+		return nil, err
+	}
+	return jsonBytes, nil
+}
+
+func (a *Message) Deserialize(jsonDaat []byte) error {
+	err := json.Unmarshal(jsonDaat, a)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getInputString(prompt string) string {
+	fmt.Print(prompt + " ")
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Error reading input:", err)
+		os.Exit(1)
+	}
+	return strings.TrimSpace(input)
+}
+
+// MDNS
 type discoveryNotifee struct {
 	h host.Host
 }
 
-// HandlePeerFound connects to peers discovered via mDNS. Once they're connected,
-// the PubSub system will automatically start interacting with them if they also
-// support PubSub.
 func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	fmt.Printf("discovered new peer %s\n", pi.ID)
 	err := n.h.Connect(context.Background(), pi)
@@ -224,8 +248,6 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	}
 }
 
-// setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
-// This lets us automatically discover peers on the same LAN and connect to them.
 func setupDiscovery(h host.Host) error {
 	// setup mDNS discovery to find local peers
 	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})

@@ -2,25 +2,33 @@ package db
 
 import (
 	"context"
-	"log"
+	"net/http"
 	"os"
 
 	"github.com/Rosa-Devs/POC/src/manifest"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type DB struct {
 	DatabasePath string
+	server       *http.Server
+	client       *http.Client
+	H            host.Host
+	Pb           *pubsub.PubSub
+	id           peer.ID
 }
 
 func (db *DB) Start(path string) {
 	db.DatabasePath = path
+	db.id = db.H.ID()
+	go db.Serve()
 }
 
-func (db *DB) CreateDb(id string) error {
+func (db *DB) CreateDb(m manifest.Manifest) error {
 
-	database_path := db.DatabasePath + "/" + id
+	database_path := db.DatabasePath + "/" + m.Name
 
 	err := os.MkdirAll(database_path, 0775)
 	if err != nil {
@@ -45,15 +53,16 @@ type Database struct {
 	TaskPool chan Action
 }
 
-func (db *DB) GetDb(id string, pb *pubsub.PubSub, m manifest.Manifest, peer peer.ID) Database {
+func (db *DB) GetDb(m manifest.Manifest) Database {
 
 	return Database{
 		db:       db,
-		db_name:  id,
+		db_name:  m.Name,
 		TaskPool: make(chan Action),
 		ctx:      context.Background(),
-		pb:       pb, manifest: m,
-		peerId: peer,
+		pb:       db.Pb,
+		manifest: m,
+		peerId:   db.id,
 	}
 }
 
@@ -68,7 +77,7 @@ func (db *Database) PublishUpdate(a Action) error {
 
 	db.TaskPool <- data
 
-	log.Println(data.SenderID)
+	//log.Println(data.SenderID)
 	return nil
 
 }
