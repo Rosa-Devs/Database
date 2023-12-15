@@ -1,12 +1,10 @@
-package main
+package db
 
 import (
-	"fmt"
 	"sync"
-	"time"
 )
 
-const DbChangeEvent = "DbChanged"
+const DbUpdateEvent = "DbUpdateEvent"
 
 type Event struct {
 	Name string
@@ -62,34 +60,51 @@ func (bus *EventBus) Publish(event Event) {
 	}
 }
 
-func main() {
-	// Create a new event bus
-	eventBus := NewEventBus()
+// func main() {
+// 	// Create a new event bus
+// 	eventBus := NewEventBus()
 
-	// Subscribe to "DbChanged" event
-	listener := make(chan Event)
-	eventBus.Subscribe(DbChangeEvent, listener)
+// 	// Subscribe to "DbChanged" event
+// 	listener1 := make(chan Event)
+// 	listener2 := make(chan Event)
+// 	eventBus.Subscribe(DbChangeEvent, listener1)
+// 	eventBus.Subscribe(DbChangeEvent2, listener2)
 
-	// Set up a listener goroutine
-	// Set up a listener goroutine
-	go func() {
-		for {
-			for event := range listener {
-				fmt.Printf("Received event: %s, Data: %v\n", event.Name, event.Data)
-			}
-		}
-	}()
+// 	// Set up a listener goroutine
+// 	// Set up a listener goroutine
+// 	go func() {
+// 		for {
+// 			for event := range listener1 {
+// 				fmt.Println("Listener1: event:", event.Name)
+// 			}
+// 		}
+// 	}()
 
-	// Simulate a DbChangeEvent
-	go func() {
-		for {
-			time.Sleep(2 * time.Second)
-			eventBus.Publish(Event{Name: DbChangeEvent, Data: []byte("Updated data")})
-		}
-	}()
+// 	go func() {
+// 		for {
+// 			for event := range listener2 {
+// 				fmt.Println("Listener2: event:", event.Name)
+// 			}
+// 		}
+// 	}()
 
-	// Wait for goroutines to finish before exiting
-	for {
+// 	// Simulate a DbChangeEvent
+// 	go func() {
+// 		for {
+// 			time.Sleep(2 * time.Second)
+// 			eventBus.Publish(Event{Name: DbChangeEvent, Data: []byte("Updated data")})
+// 		}
+// 	}()
 
-	}
-}
+// 	go func() {
+// 		for {
+// 			time.Sleep(2 * time.Second)
+// 			eventBus.Publish(Event{Name: DbChangeEvent2, Data: []byte("Updated data")})
+// 		}
+// 	}()
+
+// 	// Wait for goroutines to finish before exiting
+// 	for {
+
+// 	}
+// }

@@ -29,7 +29,6 @@ func (db *DB) Start(path string) {
 func (db *DB) CreateDb(m manifest.Manifest) error {
 
 	database_path := db.DatabasePath + "/" + m.Name
-
 	err := os.MkdirAll(database_path, 0775)
 	if err != nil {
 		return err
@@ -51,6 +50,8 @@ type Database struct {
 	db_name string
 
 	TaskPool chan Action
+
+	EventBus EventBus
 }
 
 func (db *DB) GetDb(m manifest.Manifest) Database {
@@ -63,6 +64,7 @@ func (db *DB) GetDb(m manifest.Manifest) Database {
 		pb:       db.Pb,
 		manifest: m,
 		peerId:   db.id,
+		EventBus: *NewEventBus(),
 	}
 }
 

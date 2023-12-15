@@ -87,6 +87,10 @@ func (Pool *Pool) Record(data []byte) error {
 		})
 	}
 
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	Pool.Database.EventBus.Publish(*event)
+
 	//fmt.Println("New db record!")
 	return nil
 }
@@ -135,6 +139,10 @@ func (Pool *Pool) RecordWithID(data []byte, id string) error {
 			},
 		})
 	}
+
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	Pool.Database.EventBus.Publish(*event)
 
 	//fmt.Println("New db record!")
 	return nil
@@ -283,6 +291,10 @@ func (p *Pool) Delete(id string) error {
 		})
 	}
 
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	p.Database.EventBus.Publish(*event)
+
 	// fmt.Println("Record with ID", id, "deleted successfully.")
 	return nil
 }
@@ -330,6 +342,10 @@ func (p *Pool) Update(id string, newData []byte) error {
 			},
 		})
 	}
+
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	p.Database.EventBus.Publish(*event)
 
 	//fmt.Println("Record with ID", id, "updated successfully.")
 	return nil

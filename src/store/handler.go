@@ -66,6 +66,10 @@ func (ps *WorkerRoom) update(msg Data) {
 	if err != nil {
 		log.Println("Fail to update record, error:", err)
 	}
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	pool.Database.EventBus.Publish(*event)
+
 }
 
 func (ps *WorkerRoom) delete(msg Data) {
@@ -79,6 +83,10 @@ func (ps *WorkerRoom) delete(msg Data) {
 	if err != nil {
 		log.Println("Fail to delete record, error:", err)
 	}
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	pool.Database.EventBus.Publish(*event)
+
 }
 
 func (ps *WorkerRoom) create(msg Data) {
@@ -94,5 +102,7 @@ func (ps *WorkerRoom) create(msg Data) {
 		log.Println("Fail to create file, error:", err)
 		return
 	}
-
+	event := new(Event)
+	event.Name = DbUpdateEvent
+	pool.Database.EventBus.Publish(*event)
 }

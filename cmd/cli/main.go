@@ -104,34 +104,39 @@ func main() {
 		return
 	}
 
+	updateListener := make(chan db.Event)
+	db1.EventBus.Subscribe(db.DbUpdateEvent, updateListener)
+
 	go func() {
 		var prevState []map[string]interface{}
 		for {
-			filter := map[string]interface{}{
-				"type": 1,
-			}
-
-			data, err := pool.Filter(filter)
-			if err != nil {
-				fmt.Println("Data:", data)
-				fmt.Println("Error filtering data:", err)
-			}
-
-			// Sort messages by timestamp in descending order (newest first)
-			sort.Slice(data, func(i, j int) bool {
-				time1, _ := time.Parse(time.RFC3339, data[i]["TimeStamp"].(string))
-				time2, _ := time.Parse(time.RFC3339, data[j]["TimeStamp"].(string))
-				return time1.After(time2)
-			})
-
-			for _, record := range data {
-				if isNewMessage(record, prevState, *NickName) {
-					fmt.Println(record["nick"].(string) + ":" + record["msg"].(string))
+			for _ = range updateListener {
+				filter := map[string]interface{}{
+					"type": 1,
 				}
-			}
 
-			prevState = data
-			time.Sleep(time.Millisecond * 70)
+				data, err := pool.Filter(filter)
+				if err != nil {
+					fmt.Println("Data:", data)
+					fmt.Println("Error filtering data:", err)
+				}
+
+				// Sort messages by timestamp in descending order (newest first)
+				sort.Slice(data, func(i, j int) bool {
+					time1, _ := time.Parse(time.RFC3339, data[i]["TimeStamp"].(string))
+					time2, _ := time.Parse(time.RFC3339, data[j]["TimeStamp"].(string))
+					return time1.After(time2)
+				})
+
+				for _, record := range data {
+					if isNewMessage(record, prevState, *NickName) {
+						fmt.Println(record["nick"].(string) + ":" + record["msg"].(string))
+					}
+				}
+
+				prevState = data
+				time.Sleep(time.Millisecond * 70)
+			}
 		}
 	}()
 

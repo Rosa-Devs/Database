@@ -121,10 +121,22 @@ func main() {
 	// 			fmt.Println("Error recording data:", err)
 	// 			return
 	// 		}
-	// 		time.Sleep(time.Millisecond * 100)
+	// 		//time.Sleep(time.Millisecond * 100)
 	// 		endTime := time.Now()
 	// 		duration := endTime.Sub(startTime)
 	// 		log.Printf("Time: %s", duration)
+	// 		time.Sleep(time.Second * 2)
+	// 	}
+	// }()
+
+	//EventLister wait for updates in db
+	// updataListener := make(chan db.Event)
+	// db1.EventBus.Subscribe(db.DbUpdateEvent, updataListener)
+	// go func() {
+	// 	for {
+	// 		for event := range updataListener {
+	// 			log.Println("Handled UpdateEvent:", event.Name)
+	// 		}
 	// 	}
 	// }()
 
