@@ -7,8 +7,9 @@ import "encoding/json"
 // Name
 // PubSub Room
 type Manifest struct {
-	Name   string `json:"name"`
-	PubSub string `json:"pubsub"`
+	Name     string `json:"name"`
+	PubSub   string `json:"pubsub"`
+	Optional string `json:"optional"`
 }
 
 func (a *Manifest) Serialize() ([]byte, error) {

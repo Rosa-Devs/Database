@@ -20,14 +20,15 @@ func GenerateNoise(length int) string {
 	return string(randomString)
 }
 
-func GenereateManifest(name string, file bool) *Manifest {
+func GenereateManifest(name string, file bool, opts string) *Manifest {
 
 	// Create pubsub indentifier for database
 	pubsub := GenerateNoise(64)
 
 	model := Manifest{
-		Name:   name,
-		PubSub: pubsub,
+		Name:     name,
+		PubSub:   pubsub,
+		Optional: opts,
 	}
 
 	if file {
