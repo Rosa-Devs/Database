@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -82,10 +81,19 @@ func (cr *WorkerRoom) TaskPublisher() {
 				task_data, err := task.Serialize()
 				if err != nil {
 					log.Println(err)
+					continue
 				}
-				err = cr.topic.Publish(cr.ctx, task_data)
+
+				// Encrypt data
+				edata, err := cr.db.chiper.Encrypt(task_data)
 				if err != nil {
-					fmt.Println("Error publishing task:", err)
+					log.Println("Failed to ecnrypt message!", err)
+					continue
+				}
+				err = cr.topic.Publish(cr.ctx, edata)
+				if err != nil {
+					log.Println("Error publishing task:", err)
+					continue
 				}
 			}
 
@@ -102,15 +110,21 @@ func (cr *WorkerRoom) readLoop() {
 	for {
 		msg, err := cr.sub.Next(cr.ctx)
 		if err != nil {
-			close(cr.Messages)
-			return
+			continue
 		}
 		// only forward messages delivered by others
 		if msg.ReceivedFrom == cr.self {
 			continue
 		}
+
 		cm := new(Action)
-		err = json.Unmarshal(msg.Data, cm)
+
+		edata, err := cr.db.chiper.Decrypt(msg.Data)
+		if err != nil {
+			log.Println("Failed to decrypt message!", err)
+		}
+
+		err = json.Unmarshal(edata, cm)
 		if err != nil {
 			continue
 		}

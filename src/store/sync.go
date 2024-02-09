@@ -35,7 +35,10 @@ func (wr *WorkerRoom) Sync() {
 			nodes = getRandomNodes(nodes, 15)
 		}
 
-		m, err := wr.db.manifest.Serialize()
+		m_data := wr.db.manifest
+		m_data.Chiper = "9756707289479916212080576755FYou"
+
+		m, err := m_data.Serialize()
 		// Send a POST request to each node
 		if err != nil {
 			log.Println("Err:", err)
@@ -98,7 +101,7 @@ func (wr *WorkerRoom) Sync() {
 			err = json.NewDecoder(resp.Body).Decode(&Index)
 			if err != nil {
 				log.Println("Failed to decode indexs, ERR:", err)
-				return
+				continue
 			}
 			//log.Printf("Response from node %s: %s\n", id.String(), body)
 			DBIndexs = append(DBIndexs, Index)

@@ -2,9 +2,11 @@ package db
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 
+	"github.com/Rosa-Devs/Database/src/chiper"
 	"github.com/Rosa-Devs/Database/src/manifest"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -51,10 +53,18 @@ type Database struct {
 
 	TaskPool chan Action
 
+	chiper *chiper.Chiper
+
 	EventBus EventBus
 }
 
 func (db *DB) GetDb(m manifest.Manifest) Database {
+
+	c, err := chiper.NewChiper(m.Chiper)
+	if err != nil {
+		log.Println("Failed to create chiper!!!")
+		return Database{}
+	}
 
 	return Database{
 		db:       db,
@@ -65,6 +75,7 @@ func (db *DB) GetDb(m manifest.Manifest) Database {
 		manifest: m,
 		peerId:   db.id,
 		EventBus: *NewEventBus(),
+		chiper:   c,
 	}
 }
 

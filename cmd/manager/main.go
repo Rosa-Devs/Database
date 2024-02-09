@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	if *database != "" {
-		manifest.GenereateManifest(*database, true)
+		manifest.GenereateManifest(*database, true, "")
 		return
 	}
 

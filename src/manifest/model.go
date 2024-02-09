@@ -9,6 +9,7 @@ import "encoding/json"
 type Manifest struct {
 	Name     string `json:"name"`
 	PubSub   string `json:"pubsub"`
+	Chiper   string `json:"chiper"`
 	Optional string `json:"optional"`
 }
 

@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Rosa-Devs/Database/src/chiper"
 	"github.com/Rosa-Devs/Database/src/manifest"
 
 	db "github.com/Rosa-Devs/Database/src/store"
@@ -24,13 +25,16 @@ const DiscoveryInterval = time.Hour
 const DiscoveryServiceTag = "pubsub-chat-example"
 
 func main() {
+	//Tests
+	test_chiper()
+
 	database := flag.String("d", "", "use it to create databse manifest file")
 	ManifestFile := flag.String("m", "", "set Manifets file")
 	FolderName := flag.String("f", "", "set db folder name")
 	flag.Parse()
 
 	if *database != "" {
-		manifest.GenereateManifest(*database, true, "Pidor ebanye")
+		manifest.GenereateManifest(*database, true, "")
 		return
 	}
 
@@ -53,14 +57,14 @@ func main() {
 		panic(err)
 	}
 
-	// setup local mDNS discovery
-	if err := setupDiscovery(h); err != nil {
-		panic(err)
-	}
-
 	// use the nickname from the cli flag, or a default if blank
 
 	manifetstData := manifest.ReadManifestFromFile(*ManifestFile)
+
+	// setup local mDNS discovery
+	if err := setupDiscovery(h, manifetstData.PubSub[:25]); err != nil {
+		panic(err)
+	}
 
 	// !! GLOBAl DB MANAGER !!
 	//CREATE DATABSE INSTANCE
@@ -260,8 +264,23 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 
 // setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
 // This lets us automatically discover peers on the same LAN and connect to them.
-func setupDiscovery(h host.Host) error {
+func setupDiscovery(h host.Host, tag string) error {
 	// setup mDNS discovery to find local peers
-	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})
+	s := mdns.NewMdnsService(h, tag, &discoveryNotifee{h: h})
 	return s.Start()
+}
+
+func test_chiper() {
+	key := "97567072894799162120805767557057"
+
+	chiper1, _ := chiper.NewChiper(key)
+	data, err := chiper1.Encrypt([]byte("Hello"))
+	if err != nil {
+		log.Println("Encryptor,", err)
+	}
+	edata, err := chiper1.Decrypt(data)
+	if err != nil {
+		log.Println("Decryptor,", err)
+	}
+	log.Println(string(edata))
 }
