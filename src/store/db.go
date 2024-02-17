@@ -30,7 +30,7 @@ func (db *DB) Start(path string) {
 
 func (db *DB) CreateDb(m manifest.Manifest) error {
 
-	database_path := db.DatabasePath + "/" + m.Name
+	database_path := db.DatabasePath + "/" + m.UId
 	err := os.MkdirAll(database_path, 0775)
 	if err != nil {
 		return err
@@ -48,8 +48,7 @@ type Database struct {
 
 	manifest manifest.Manifest
 
-	db      *DB
-	db_name string
+	db *DB
 
 	TaskPool chan Action
 
@@ -68,7 +67,6 @@ func (db *DB) GetDb(m manifest.Manifest) Database {
 
 	return Database{
 		db:       db,
-		db_name:  m.Name,
 		TaskPool: make(chan Action),
 		ctx:      context.Background(),
 		pb:       db.Pb,
@@ -96,7 +94,7 @@ func (db *Database) PublishUpdate(a Action) error {
 }
 
 func (db *Database) CreatePool(pool_id string) error {
-	pool_path := db.db.DatabasePath + "/" + db.db_name + "/" + pool_id
+	pool_path := db.db.DatabasePath + "/" + db.manifest.UId + "/" + pool_id
 
 	err := os.Mkdir(pool_path, 0775)
 	if err != nil {

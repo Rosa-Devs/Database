@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"reflect"
@@ -35,10 +34,7 @@ func (wr *WorkerRoom) Sync() {
 			nodes = getRandomNodes(nodes, 15)
 		}
 
-		m_data := wr.db.manifest
-		m_data.Chiper = "9756707289479916212080576755FYou"
-
-		m, err := m_data.Serialize()
+		m, err := wr.db.manifest.Serialize()
 		// Send a POST request to each node
 		if err != nil {
 			log.Println("Err:", err)
@@ -54,7 +50,7 @@ func (wr *WorkerRoom) Sync() {
 			defer resp.Body.Close()
 
 			// Read the response body
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Println("Error reading response body:", err)
 			} else {

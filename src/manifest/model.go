@@ -8,6 +8,7 @@ import "encoding/json"
 // PubSub Room
 type Manifest struct {
 	Name     string `json:"name"`
+	UId      string `json:"uid"`
 	PubSub   string `json:"pubsub"`
 	Chiper   string `json:"chiper"`
 	Optional string `json:"optional"`

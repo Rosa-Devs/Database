@@ -32,6 +32,7 @@ func GenereateManifest(name string, file bool, opts string) *Manifest {
 		PubSub:   pubsub,
 		Optional: opts,
 		Chiper:   chiper,
+		UId:      GenerateNoise(64),
 	}
 
 	if file {

@@ -20,7 +20,7 @@ func generateHash(data []byte) string {
 // generateMerkleTree generates a Merkle tree for the given directory.
 // calculateHashTree calculates the hash tree for the given directory.
 func (p *Database) GenereateMerkleTree() (string, error) {
-	rootPath := p.db.DatabasePath + "/" + p.db_name
+	rootPath := p.db.DatabasePath + "/" + p.manifest.UId
 	var fileList []string
 
 	// Traverse the directory and get the list of file paths
@@ -89,7 +89,7 @@ func (p *Database) GenereateMerkleTree() (string, error) {
 
 func (db *Database) Index() (map[string]string, error) {
 
-	rootPath := db.db.DatabasePath + "/" + db.db_name
+	rootPath := db.db.DatabasePath + "/" + db.manifest.UId
 	var fileList []string
 
 	// Traverse the directory and get the list of file paths

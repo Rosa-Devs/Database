@@ -156,7 +156,7 @@ func (s *DB) GetRecord(w http.ResponseWriter, r *http.Request) {
 	}
 	m.Deserialize(body)
 
-	db := s.GetDb(*&m.Database)
+	db := s.GetDb(m.Database)
 
 	pool, err := db.GetPool(m.Pool)
 	if err != nil {

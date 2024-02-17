@@ -21,7 +21,8 @@ type Pool struct {
 
 func (db *Database) GetPool(poolName string, w ...bool) (*Pool, error) {
 
-	folderPath := db.db.DatabasePath + "/" + db.db_name + "/" + poolName // Replace this with the actual path to your folder
+	log.Println(db.manifest.UId)
+	folderPath := db.db.DatabasePath + "/" + db.manifest.UId + "/" + poolName // Replace this with the actual path to your folder
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		// Folder does not exist
 		return nil, err
@@ -36,7 +37,7 @@ func (db *Database) GetPool(poolName string, w ...bool) (*Pool, error) {
 		}
 	}
 
-	return &Pool{Database: db, PoolName: poolName, Working_path: db.db.DatabasePath + "/" + db.db_name + "/" + poolName, Worker: worker}, nil
+	return &Pool{Database: db, PoolName: poolName, Working_path: db.db.DatabasePath + "/" + db.manifest.UId + "/" + poolName, Worker: worker}, nil
 }
 
 func (Pool *Pool) Record(data []byte) error {
