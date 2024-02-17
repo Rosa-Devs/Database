@@ -161,6 +161,8 @@ func (wr *WorkerRoom) GetRecordUpdate(file string, nodes []peer.ID) {
 	if bestMatch == nil {
 		log.Println("No matching data found for file:", file)
 	}
+	// a, _ := payload.Serialize()
+	// log.Println("PAYLOAD:", string(a))
 	pool, err := wr.db.GetPool(payload.Pool, true)
 	if err != nil {
 		log.Println("Failed to get pool:", err)
@@ -168,7 +170,7 @@ func (wr *WorkerRoom) GetRecordUpdate(file string, nodes []peer.ID) {
 
 	err = pool.RecordWithID(bestMatch, payload.Id)
 	if err != nil {
-		log.Println("Fail to update file", err)
+		log.Println("Fail to update file1", err)
 	}
 	log.Println("Updated Recod:", payload.Id)
 }

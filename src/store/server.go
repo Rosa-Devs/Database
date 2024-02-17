@@ -145,12 +145,14 @@ func (s *DB) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (s *DB) GetRecord(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		log.Println("Invalid method")
 		return
 	}
 
 	m := new(RecordRequest)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Println("Fail to read request body:", err)
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
 	}
@@ -160,19 +162,26 @@ func (s *DB) GetRecord(w http.ResponseWriter, r *http.Request) {
 
 	pool, err := db.GetPool(m.Pool)
 	if err != nil {
+		log.Println("Fail to get db", err)
 		http.Error(w, "Failed to get pool", http.StatusInternalServerError)
 		return
 	}
 
 	record, err := pool.GetByID(m.Id)
 	if err != nil {
+		log.Println("Failed to get pool:", err)
 		http.Error(w, "Failed get record", http.StatusInternalServerError)
+		return
 	}
+
+	//log.Println(record)
 
 	//log.Println("Record", record)
 	record_str, err := json.Marshal(record)
 	if err != nil {
+		log.Println("Failed to serializer record:", err)
 		http.Error(w, "Failed serialize record", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

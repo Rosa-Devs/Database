@@ -2,16 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/Rosa-Devs/Database/src/chiper"
 	"github.com/Rosa-Devs/Database/src/manifest"
-	"github.com/google/uuid"
 
 	db "github.com/Rosa-Devs/Database/src/store"
 	"github.com/libp2p/go-libp2p"
@@ -92,49 +89,56 @@ func main() {
 	if err != nil {
 		log.Println("Mayby this pool alredy exist:", err)
 		//return
+
 	}
 
-	pool, err := db1.GetPool("test_pool")
+	_, err = db1.GetPool("test_pool")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	go func() {
-		//SIMULATE ADDING DATA
-		time.Sleep(time.Second)
-		rand.Seed(time.Now().UnixNano())
-		for {
-			startTime := time.Now()
-			// Generate random data
-			randomData := map[string]interface{}{
-				"field1": rand.Intn(100),             // Random integer between 0 and 100
-				"field2": rand.Float64() * 100,       // Random float between 0 and 100
-				"field3": uuid.New().String(),        // Random UUID as a string
-				"field4": time.Now().UnixNano(),      // Current timestamp in nanoseconds
-				"field5": fmt.Sprintf("Record%d", 1), // Custom string with record number
-			}
+	// pool, err := db1.GetPool("test_pool")
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
 
-			// Convert data to JSON
-			jsonData, err := json.Marshal(randomData)
-			if err != nil {
-				fmt.Println("Error marshaling JSON:", err)
-				return
-			}
+	// go func() {
+	// 	//SIMULATE ADDING DATA
+	// 	time.Sleep(time.Second)
+	// 	rand.Seed(time.Now().UnixNano())
+	// 	for {
+	// 		startTime := time.Now()
+	// 		// Generate random data
+	// 		randomData := map[string]interface{}{
+	// 			"field1": rand.Intn(100),             // Random integer between 0 and 100
+	// 			"field2": rand.Float64() * 100,       // Random float between 0 and 100
+	// 			"field3": uuid.New().String(),        // Random UUID as a string
+	// 			"field4": time.Now().UnixNano(),      // Current timestamp in nanoseconds
+	// 			"field5": fmt.Sprintf("Record%d", 1), // Custom string with record number
+	// 		}
 
-			// Call Record function to save the record
-			err = pool.Record(jsonData)
-			if err != nil {
-				fmt.Println("Error recording data:", err)
-				return
-			}
-			//time.Sleep(time.Millisecond * 100)
-			endTime := time.Now()
-			duration := endTime.Sub(startTime)
-			log.Printf("Time: %s", duration)
-			// time.Sleep(time.Second * 2)
-		}
-	}()
+	// 		// Convert data to JSON
+	// 		jsonData, err := json.Marshal(randomData)
+	// 		if err != nil {
+	// 			fmt.Println("Error marshaling JSON:", err)
+	// 			return
+	// 		}
+
+	// 		// Call Record function to save the record
+	// 		err = pool.Record(jsonData)
+	// 		if err != nil {
+	// 			fmt.Println("Error recording data:", err)
+	// 			return
+	// 		}
+	// 		//time.Sleep(time.Millisecond * 100)
+	// 		endTime := time.Now()
+	// 		duration := endTime.Sub(startTime)
+	// 		log.Printf("Time: %s", duration)
+	// 		// time.Sleep(time.Second * 2)
+	// 	}
+	// }()
 
 	//EventLister wait for updates in db
 	// updataListener := make(chan db.Event)
