@@ -30,19 +30,23 @@ func (r *RecordRequest) Decode(path string) {
 	parts := strings.Split(path, "/")
 
 	// Check if the link has the expected number of parts
-	if len(parts) != 4 {
+	if len(parts) < 2 {
 		log.Println("invalid link format")
+		return
 	}
 
 	// Check if the last part has the expected ".json" extension
-	if !strings.HasSuffix(parts[3], ".json") {
+	lastIndex := len(parts) - 1
+	if !strings.HasSuffix(parts[lastIndex], ".json") {
 		log.Println("invalid link format")
+		return
 	}
 
 	// Extract the components from the link
-	r.Id = strings.TrimSuffix(parts[3], ".json")
-	r.Pool = parts[1]
+	r.Id = strings.TrimSuffix(parts[lastIndex], ".json")
+	r.Pool = parts[lastIndex-2]
 }
+
 func (r *RecordRequest) Serialize() ([]byte, error) {
 	jsonBytes, err := json.Marshal(r)
 	if err != nil {
