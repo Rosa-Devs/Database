@@ -11,7 +11,7 @@ import (
 )
 
 // ChatRoomBufSize is the number of incoming messages to buffer for each topic.
-const ChatRoomBufSize = 1024
+const ChatRoomBufSize = 1572864
 
 // shortID returns the last 8 chars of a base58-encoded peer id.
 
