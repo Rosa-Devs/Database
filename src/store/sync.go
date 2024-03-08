@@ -27,7 +27,8 @@ func (wr *WorkerRoom) Sync() {
 
 		if len(nodes) == 0 {
 			log.Println("No peers available NOT SYNCING")
-			return
+			time.Sleep(time.Second * 60)
+			continue
 		}
 
 		if len(nodes) > 15 {
@@ -37,14 +38,14 @@ func (wr *WorkerRoom) Sync() {
 		m, err := wr.db.manifest.Serialize()
 		// Send a POST request to each node
 		if err != nil {
-			log.Println("Err:", err)
+			log.Println("Fail to seralize a request", err)
 		}
 		var roots []string
 		for _, id := range nodes {
 
 			resp, err := wr.db.db.client.Post("libp2p://"+id.String()+"/merkle", "application/json", bytes.NewBuffer(m))
 			if err != nil {
-				log.Println("Failed to post manifest data to node:", id.String(), "Err:", err)
+				log.Println("Failed to post manifest data to node:", id.String()) // , "Err:", err
 				continue
 			}
 			defer resp.Body.Close()
@@ -53,6 +54,7 @@ func (wr *WorkerRoom) Sync() {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Println("Error reading response body:", err)
+				continue
 			} else {
 
 				var merkelResponse MerkelRoot
@@ -69,7 +71,8 @@ func (wr *WorkerRoom) Sync() {
 		root_hash := findMostRepeatedString(roots)
 		if root_hash == "" {
 			log.Println("DataBase is empty NOT SYNCING")
-			return
+			time.Sleep(time.Second * 60)
+			continue
 		}
 		//log.Println("TRUE_HASH:", root_hash)
 
@@ -80,7 +83,8 @@ func (wr *WorkerRoom) Sync() {
 
 		if my_root == root_hash {
 			log.Println("DB sync complete")
-			return
+			time.Sleep(time.Second * 60)
+			continue
 		}
 
 		var DBIndexs []map[string]string
@@ -107,7 +111,8 @@ func (wr *WorkerRoom) Sync() {
 
 		my_index, err := wr.db.Index()
 		if err != nil {
-			log.Println("Failt to index database:", err)
+			log.Println("Fail to index database:", err)
+			continue
 		}
 
 		changed_file := wr.db.CalculateChangedFiles(index, my_index)
@@ -130,7 +135,7 @@ func (wr *WorkerRoom) GetRecordUpdate(file string, nodes []peer.ID) {
 	data_file, err := payload.Serialize()
 	if err != nil {
 		log.Println("Failed to serialize, ERROR:", err.Error())
-
+		return
 	}
 
 	var data [][]byte
@@ -138,18 +143,19 @@ func (wr *WorkerRoom) GetRecordUpdate(file string, nodes []peer.ID) {
 		resp, err := wr.fetchDataWithRetry(id.String(), data_file)
 		if err != nil {
 			log.Println("Failed to post manifest data to node:", id.String())
-
+			continue
 		}
 
 		// Read the response body
 		if err != nil {
 			log.Println("Error reading response body:", err)
+			continue
 		} else {
 			var deserializedBytes []byte
 			err = json.Unmarshal(resp, &deserializedBytes)
 			if err != nil {
 				fmt.Println("Error unmarshaling to bytes:", err)
-
+				continue
 			}
 			data = append(data, deserializedBytes)
 		}
@@ -160,17 +166,20 @@ func (wr *WorkerRoom) GetRecordUpdate(file string, nodes []peer.ID) {
 	bestMatch := findMostRepeatedBytes(data)
 	if bestMatch == nil {
 		log.Println("No matching data found for file:", file)
+		return
 	}
 	// a, _ := payload.Serialize()
 	// log.Println("PAYLOAD:", string(a))
 	pool, err := wr.db.GetPool(payload.Pool, true)
 	if err != nil {
 		log.Println("Failed to get pool:", err)
+		return
 	}
 
 	err = pool.RecordWithID(bestMatch, payload.Id)
 	if err != nil {
 		log.Println("Fail to update file1", err)
+		return
 	}
 	log.Println("Updated Recod:", payload.Id)
 }

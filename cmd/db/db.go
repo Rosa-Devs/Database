@@ -132,7 +132,7 @@ func main() {
 	// 			fmt.Println("Error recording data:", err)
 	// 			return
 	// 		}
-	// 		//time.Sleep(time.Millisecond * 100)
+	// 		time.Sleep(time.Millisecond * 100)
 	// 		endTime := time.Now()
 	// 		duration := endTime.Sub(startTime)
 	// 		log.Printf("Time: %s", duration)
